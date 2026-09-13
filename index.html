@@ -290,6 +290,41 @@
     text-decoration: underline;
     margin-bottom: 16px;
   }
+  .landing-tagline {
+    font-size: 15px;
+    color: #666;
+    margin: 6px 0 22px;
+    line-height: 1.5;
+  }
+  .landing-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 26px;
+  }
+  .landing-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: #444;
+    padding: 9px 0;
+    border-bottom: 1px solid #f0f0f3;
+  }
+  .landing-features li:last-child {
+    border-bottom: none;
+  }
+  .landing-features .icon {
+    font-size: 16px;
+    line-height: 1.3;
+  }
+  .landing-features strong {
+    color: #222;
+  }
+  .btn-large {
+    width: 100%;
+    padding: 13px 18px;
+    font-size: 15px;
+  }
 </style>
 </head>
 <body>
@@ -359,11 +394,35 @@ async function loadQuestions() {
       viewingResults = false;
       render();
     } else {
-      renderLevelSelect();
+      renderLanding();
     }
   } catch (err) {
     app.innerHTML = `<div class="error">Couldn't load quiz-questions.json. Make sure it's in the same folder as this file.</div>`;
   }
+}
+
+function renderLanding() {
+  const total = allQuestions.length;
+  const levelCount = new Set(allQuestions.map(q => q.level).filter(Boolean)).size;
+
+  app.innerHTML = `
+    <h1>JavaScript Quiz</h1>
+    <div class="landing-tagline">
+      Test your JavaScript knowledge across ${levelCount} difficulty levels with ${total} questions — multiple choice, live code you write and run, and output-prediction challenges.
+    </div>
+    <ul class="landing-features">
+      <li><span class="icon">🎯</span><span><strong>Pick your level</strong> — Beginner, Intermediate, or Advanced, shuffled each time.</span></li>
+      <li><span class="icon">💻</span><span><strong>Write real code</strong> — run it in-browser and get graded against the expected output.</span></li>
+      <li><span class="icon">🔮</span><span><strong>Predict the output</strong> — read a snippet and guess what it prints.</span></li>
+      <li><span class="icon">📊</span><span><strong>Check progress anytime</strong> — see your score before you finish.</span></li>
+      <li><span class="icon">💾</span><span><strong>Pick up where you left off</strong> — progress is saved automatically.</span></li>
+    </ul>
+    <button class="btn-primary btn-large" id="getStartedBtn" type="button">Get Started</button>
+  `;
+
+  document.getElementById("getStartedBtn").addEventListener("click", () => {
+    renderLevelSelect();
+  });
 }
 
 function shuffle(arr) {
