@@ -333,6 +333,15 @@
   .top-bar .stats-link {
     margin-bottom: 0;
   }
+  .resume-banner {
+    background: #f4f2ff;
+    border: 1px solid #ddd6ff;
+    color: #4a3fa0;
+    font-size: 13.5px;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+  }
 </style>
 </head>
 <body>
@@ -391,19 +400,7 @@ async function loadQuestions() {
     if (!res.ok) throw new Error("Failed to load questions.json");
     const data = await res.json();
     allQuestions = data.questions;
-
-    const saved = loadSavedProgress();
-    if (saved && saved.level && Array.isArray(saved.questions) && saved.questions.length) {
-      currentLevel = saved.level;
-      questions = saved.questions;
-      current = saved.current || 0;
-      answers = saved.answers || new Array(questions.length).fill(null);
-      submitted = !!saved.submitted;
-      viewingResults = false;
-      render();
-    } else {
-      renderLanding();
-    }
+    renderLanding();
   } catch (err) {
     app.innerHTML = `<div class="error">Couldn't load quiz-questions.json. Make sure it's in the same folder as this file.</div>`;
   }
@@ -412,6 +409,8 @@ async function loadQuestions() {
 function renderLanding() {
   const total = allQuestions.length;
   const levelCount = new Set(allQuestions.map(q => q.level).filter(Boolean)).size;
+  const saved = loadSavedProgress();
+  const hasSaved = !!(saved && saved.level && Array.isArray(saved.questions) && saved.questions.length);
 
   app.innerHTML = `
     <h1>JavaScript Quiz</h1>
@@ -425,9 +424,28 @@ function renderLanding() {
       <li><span class="icon">📊</span><span><strong>Check progress anytime</strong> — see your score before you finish.</span></li>
       <li><span class="icon">💾</span><span><strong>Pick up where you left off</strong> — progress is saved automatically.</span></li>
     </ul>
-    <button class="btn-primary btn-large" id="getStartedBtn" type="button">Get Started</button>
+    ${hasSaved ? `
+      <div class="resume-banner">
+        You have saved progress on the <strong style="text-transform:capitalize">${saved.level}</strong> level — question ${(saved.current || 0) + 1} of ${saved.questions.length}${saved.submitted ? " (finished)" : ""}.
+      </div>
+      <button class="btn-primary btn-large" id="continueBtn" type="button">Continue Where You Left Off</button>
+      <button class="btn-secondary btn-large" id="getStartedBtn" type="button" style="margin-top:10px;">Start a New Quiz</button>
+    ` : `
+      <button class="btn-primary btn-large" id="getStartedBtn" type="button">Get Started</button>
+    `}
   `;
 
+  if (hasSaved) {
+    document.getElementById("continueBtn").addEventListener("click", () => {
+      currentLevel = saved.level;
+      questions = saved.questions;
+      current = saved.current || 0;
+      answers = saved.answers || new Array(questions.length).fill(null);
+      submitted = !!saved.submitted;
+      viewingResults = false;
+      render();
+    });
+  }
   document.getElementById("getStartedBtn").addEventListener("click", () => {
     renderLevelSelect();
   });
@@ -457,7 +475,7 @@ function wireTopBar(includeRestart) {
   });
   if (includeRestart) {
     document.getElementById("restartTopBtn").addEventListener("click", () => {
-      if (currentLevel && confirm("Restart the quiz? Your current progress for this level will be cleared.")) {
+      if (currentLevel && confirm("Restart the quiz? This will permanently delete all your progress and answers for this level. This cannot be undone.")) {
         startQuiz(currentLevel);
       }
     });
