@@ -325,6 +325,14 @@
     padding: 13px 18px;
     font-size: 15px;
   }
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .top-bar .stats-link {
+    margin-bottom: 0;
+  }
 </style>
 </head>
 <body>
@@ -434,11 +442,34 @@ function shuffle(arr) {
   return a;
 }
 
+function renderTopBar(includeRestart) {
+  return `
+    <div class="top-bar">
+      <button class="stats-link" id="homeBtn" type="button">🏠 Home</button>
+      ${includeRestart ? `<button class="stats-link" id="restartTopBtn" type="button">↻ Restart</button>` : "<span></span>"}
+    </div>
+  `;
+}
+
+function wireTopBar(includeRestart) {
+  document.getElementById("homeBtn").addEventListener("click", () => {
+    renderLanding();
+  });
+  if (includeRestart) {
+    document.getElementById("restartTopBtn").addEventListener("click", () => {
+      if (currentLevel && confirm("Restart the quiz? Your current progress for this level will be cleared.")) {
+        startQuiz(currentLevel);
+      }
+    });
+  }
+}
+
 function renderLevelSelect() {
   const levels = [...new Set(allQuestions.map(q => q.level).filter(Boolean))]
     .sort((a, b) => LEVEL_ORDER.indexOf(a) - LEVEL_ORDER.indexOf(b));
 
   app.innerHTML = `
+    ${renderTopBar(false)}
     <h1>Quick Quiz</h1>
     <div class="progress">Choose a difficulty to begin</div>
     <div class="level-select">
@@ -453,6 +484,8 @@ function renderLevelSelect() {
       }).join("")}
     </div>
   `;
+
+  wireTopBar(false);
 
   app.querySelectorAll(".level-card").forEach(btn => {
     btn.addEventListener("click", () => startQuiz(btn.dataset.level));
@@ -542,6 +575,7 @@ function render() {
   }
 
   app.innerHTML = `
+    ${renderTopBar(true)}
     <h1>Quick Quiz</h1>
     <div class="progress">Question ${current + 1} of ${questions.length}</div>
     <div class="level ${q.level || ""}">${q.level || ""}</div>
@@ -555,6 +589,8 @@ function render() {
       <button class="stats-link" id="statsBtn" type="button" style="margin-bottom:0;">View results so far</button>
     </div>
   `;
+
+  wireTopBar(true);
 
   if (q.type === "option") {
     app.querySelectorAll(".options label").forEach(label => {
@@ -716,6 +752,7 @@ function renderResults() {
 
   app.innerHTML = `
     <div class="results">
+      ${renderTopBar(true)}
       <h2>${isFinal ? "Results" : "Your Progress So Far"}</h2>
       <div class="score">
         Answered ${answeredCount} of ${questions.length} · Score: ${scoreCount} / ${scoreTotal} graded correct
@@ -731,6 +768,8 @@ function renderResults() {
       </div>
     </div>
   `;
+
+  wireTopBar(true);
 
   if (isFinal) {
     document.getElementById("restartBtn").addEventListener("click", () => {
