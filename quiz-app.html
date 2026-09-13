@@ -308,6 +308,38 @@ let viewingResults = false;
 
 const app = document.getElementById("app");
 const LEVEL_ORDER = ["beginner", "intermediate", "advanced"];
+const STORAGE_KEY = "js-quiz-progress-v1";
+
+function saveProgress() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      level: currentLevel,
+      questions,
+      current,
+      answers,
+      submitted
+    }));
+  } catch (e) {
+    // Storage can fail (private browsing, quota, disabled) — quiz still works, just won't persist.
+  }
+}
+
+function loadSavedProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearProgress() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {
+    // ignore
+  }
+}
 
 async function loadQuestions() {
   app.innerHTML = `<div class="loading">Loading quiz...</div>`;
@@ -316,7 +348,19 @@ async function loadQuestions() {
     if (!res.ok) throw new Error("Failed to load questions.json");
     const data = await res.json();
     allQuestions = data.questions;
-    renderLevelSelect();
+
+    const saved = loadSavedProgress();
+    if (saved && saved.level && Array.isArray(saved.questions) && saved.questions.length) {
+      currentLevel = saved.level;
+      questions = saved.questions;
+      current = saved.current || 0;
+      answers = saved.answers || new Array(questions.length).fill(null);
+      submitted = !!saved.submitted;
+      viewingResults = false;
+      render();
+    } else {
+      renderLevelSelect();
+    }
   } catch (err) {
     app.innerHTML = `<div class="error">Couldn't load quiz-questions.json. Make sure it's in the same folder as this file.</div>`;
   }
@@ -363,6 +407,7 @@ function startQuiz(level) {
   answers = new Array(questions.length).fill(null);
   submitted = false;
   viewingResults = false;
+  saveProgress();
   render();
 }
 
@@ -456,6 +501,7 @@ function render() {
     app.querySelectorAll(".options label").forEach(label => {
       label.addEventListener("click", () => {
         answers[current] = parseInt(label.dataset.index, 10);
+        saveProgress();
         render();
       });
     });
@@ -467,6 +513,7 @@ function render() {
 
     codeInput.addEventListener("input", () => {
       answers[current] = { ...(answers[current] || {}), code: codeInput.value };
+      saveProgress();
     });
     codeInput.addEventListener("keydown", (e) => {
       // Allow Tab to insert spaces instead of moving focus
@@ -490,26 +537,28 @@ function render() {
       codeOutput.textContent = result.error ? `Error: ${result.error}` : (result.output || "(no output — did you use console.log?)");
       codeOutput.classList.toggle("error-output", !!result.error);
       answers[current] = { code: codeInput.value, output: result.output, error: result.error };
+      saveProgress();
     });
   } else if (isPredictType) {
     const predictInput = document.getElementById("predictInput");
     predictInput.value = answers[current] || "";
     predictInput.addEventListener("input", () => {
       answers[current] = predictInput.value;
+      saveProgress();
     });
   }
 
   document.getElementById("prevBtn").addEventListener("click", () => {
-    if (current > 0) { current--; render(); }
+    if (current > 0) { current--; saveProgress(); render(); }
   });
   document.getElementById("nextBtn").addEventListener("click", () => {
     if (current < questions.length - 1) {
       current++;
-      render();
     } else {
       submitted = true;
-      render();
     }
+    saveProgress();
+    render();
   });
   document.getElementById("statsBtn").addEventListener("click", () => {
     viewingResults = true;
@@ -636,6 +685,7 @@ function renderResults() {
   }
   document.getElementById("changeLevelBtn").addEventListener("click", () => {
     viewingResults = false;
+    clearProgress();
     renderLevelSelect();
   });
 }
