@@ -227,7 +227,10 @@ function render() {
     `).join("") + `</div>`;
   } else if (isCodeType) {
     bodyHtml = `
-      <textarea class="code-input" id="codeInput" spellcheck="false"></textarea>
+      <div class="code-editor-wrap">
+        <pre class="code-highlight" id="codeHighlight" aria-hidden="true"></pre>
+        <textarea class="code-input" id="codeInput" spellcheck="false"></textarea>
+      </div>
       <div class="code-actions">
         <button class="run-btn" id="runBtn" type="button">▶ Run Code</button>
       </div>
@@ -236,7 +239,7 @@ function render() {
     `;
   } else if (isPredictType) {
     bodyHtml = `
-      <pre class="snippet-code">${escapeHtml(q.code || "")}</pre>
+      <pre class="snippet-code">${highlightJS(q.code || "")}</pre>
       <textarea class="predict-input" id="predictInput" placeholder="What will this print? (one line per console.log output)" autocomplete="off" spellcheck="false"></textarea>
     `;
   }
@@ -271,11 +274,22 @@ function render() {
     const saved = answers[current];
     const codeInput = document.getElementById("codeInput");
     const codeOutput = document.getElementById("codeOutput");
+    const codeHighlight = document.getElementById("codeHighlight");
     codeInput.value = (saved && saved.code) || q.starterCode || "";
+
+    const updateHighlight = () => {
+      codeHighlight.innerHTML = highlightJS(codeInput.value) + "\n";
+    };
+    updateHighlight();
 
     codeInput.addEventListener("input", () => {
       answers[current] = { ...(answers[current] || {}), code: codeInput.value };
       saveProgress();
+      updateHighlight();
+    });
+    codeInput.addEventListener("scroll", () => {
+      codeHighlight.scrollTop = codeInput.scrollTop;
+      codeHighlight.scrollLeft = codeInput.scrollLeft;
     });
     codeInput.addEventListener("keydown", (e) => {
       // Allow Tab to insert spaces instead of moving focus
@@ -284,6 +298,7 @@ function render() {
         const start = codeInput.selectionStart, end = codeInput.selectionEnd;
         codeInput.value = codeInput.value.slice(0, start) + "  " + codeInput.value.slice(end);
         codeInput.selectionStart = codeInput.selectionEnd = start + 2;
+        updateHighlight();
       }
     });
 
@@ -388,7 +403,7 @@ function renderResults() {
         <div class="result-item">
           <div class="level ${q.level || ""}">${q.level || ""}</div>
           <div class="result-q">${escapeHtml(q.question)}</div>
-          <pre class="result-code">${escapeHtml(codeText)}</pre>
+          <pre class="result-code">${highlightJS(codeText)}</pre>
           <div class="result-a">
             Output: ${ranOutput === null ? "Not run" : escapeHtml(hasError ? "Error: " + userAnswer.error : ranOutput)}
             <span class="badge ${isCorrect ? "correct" : "incorrect"}">${isCorrect ? "Correct" : "Incorrect"}</span>
@@ -404,7 +419,7 @@ function renderResults() {
         <div class="result-item">
           <div class="level ${q.level || ""}">${q.level || ""}</div>
           <div class="result-q">${escapeHtml(q.question)}</div>
-          <pre class="snippet-code">${escapeHtml(q.code || "")}</pre>
+          <pre class="snippet-code">${highlightJS(q.code || "")}</pre>
           <div class="result-a">
             Your answer: ${answerText}
             <span class="badge ${isCorrect ? "correct" : "incorrect"}">${isCorrect ? "Correct" : "Incorrect"}</span>
@@ -459,6 +474,43 @@ function escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str;
   return div.innerHTML;
+}
+
+const JS_KEYWORDS = "const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|class|extends|new|this|typeof|instanceof|in|of|try|catch|finally|throw|async|await|yield|import|export|default|from|static|get|set|delete|void|null|undefined|true|false|super";
+const JS_TOKEN_PATTERN = new RegExp(
+  "(\\/\\/[^\\n]*)" +                          // 1: line comment
+  "|(\\/\\*[\\s\\S]*?\\*\\/)" +                 // 2: block comment
+  "|(`(?:\\\\.|[^`\\\\])*`)" +                  // 3: template string
+  "|(\"(?:\\\\.|[^\"\\\\])*\")" +               // 4: double-quoted string
+  "|('(?:\\\\.|[^'\\\\])*')" +                  // 5: single-quoted string
+  "|(\\b\\d+\\.?\\d*\\b)" +                     // 6: number
+  "|(\\b(?:" + JS_KEYWORDS + ")\\b)" +          // 7: keyword
+  "|(\\b[A-Za-z_$][\\w$]*(?=\\s*\\())",         // 8: function call name
+  "g"
+);
+
+function highlightJS(code) {
+  code = code || "";
+  let result = "";
+  let lastIndex = 0;
+  let m;
+  JS_TOKEN_PATTERN.lastIndex = 0;
+  while ((m = JS_TOKEN_PATTERN.exec(code)) !== null) {
+    result += escapeHtml(code.slice(lastIndex, m.index));
+    const [match, comment1, comment2, template, dstring, sstring, number, keyword, func] = m;
+    let cls = null;
+    if (comment1 || comment2) cls = "tok-comment";
+    else if (template || dstring || sstring) cls = "tok-string";
+    else if (number) cls = "tok-number";
+    else if (keyword) cls = "tok-keyword";
+    else if (func) cls = "tok-function";
+    const escapedMatch = escapeHtml(match);
+    result += cls ? `<span class="${cls}">${escapedMatch}</span>` : escapedMatch;
+    lastIndex = JS_TOKEN_PATTERN.lastIndex;
+    if (m.index === JS_TOKEN_PATTERN.lastIndex) JS_TOKEN_PATTERN.lastIndex++; // guard against zero-width matches
+  }
+  result += escapeHtml(code.slice(lastIndex));
+  return result;
 }
 
 loadQuestions();

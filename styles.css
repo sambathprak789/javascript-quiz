@@ -140,7 +140,32 @@ button {
   font-size: 14px;
   color: #888;
 }
+.code-editor-wrap {
+  position: relative;
+  width: 100%;
+}
+.code-highlight {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  margin: 0;
+  padding: 12px 14px;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: auto;
+  pointer-events: none;
+  border-radius: 8px;
+  background: #1e1e2e;
+  color: #e4e4f0;
+  tab-size: 2;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
 .code-input {
+  position: relative;
+  z-index: 1;
   width: 100%;
   min-height: 140px;
   border: 1px solid #ddd;
@@ -150,14 +175,21 @@ button {
   font-size: 13.5px;
   line-height: 1.5;
   resize: vertical;
-  background: #1e1e2e;
-  color: #e4e4f0;
+  background: transparent;
+  color: transparent;
+  caret-color: #e4e4f0;
+  -webkit-text-fill-color: transparent;
   tab-size: 2;
 }
 .code-input:focus {
   outline: none;
   border-color: #6c5ce7;
 }
+.tok-keyword { color: #c792ea; font-weight: 600; }
+.tok-string { color: #9ece6a; }
+.tok-number { color: #f78c6c; }
+.tok-comment { color: #6b7089; font-style: italic; }
+.tok-function { color: #82aaff; }
 .code-actions {
   display: flex;
   justify-content: flex-end;
