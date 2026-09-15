@@ -58,13 +58,19 @@ async function loadQuestions() {
 function renderLanding() {
   const total = allQuestions.length;
   const levelCount = new Set(allQuestions.map(q => q.level).filter(Boolean)).size;
+  const typeCount = new Set(allQuestions.map(q => q.type).filter(Boolean)).size;
   const saved = loadSavedProgress();
   const hasSaved = !!(saved && saved.level && Array.isArray(saved.questions) && saved.questions.length);
 
   app.innerHTML = `
     <h1>JavaScript Quiz</h1>
     <div class="landing-tagline">
-      Test your JavaScript knowledge across ${levelCount} difficulty levels with ${total} questions — multiple choice, live code you write and run, and output-prediction challenges.
+      Test your JavaScript knowledge with multiple choice, live code you write and run, and output-prediction challenges.
+    </div>
+    <div class="landing-stats">
+      <div class="stat-box"><span class="stat-num">${total}</span><span class="stat-label">Questions</span></div>
+      <div class="stat-box"><span class="stat-num">${levelCount}</span><span class="stat-label">Levels</span></div>
+      <div class="stat-box"><span class="stat-num">${typeCount}</span><span class="stat-label">Question Types</span></div>
     </div>
     <ul class="landing-features">
       <li><span class="icon">🎯</span><span><strong>Pick your level</strong> — Beginner, Intermediate, or Advanced, shuffled each time.</span></li>
